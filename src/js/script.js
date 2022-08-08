@@ -1,3 +1,16 @@
+const BITMARK = {
+	messagePrefix: '\x19BITMARK Signed Message:\n',
+	bech32: 'btm',
+	bip32: {
+		public: 0x019da462,
+		private: 0x019d9cfe
+	},
+	pubKeyHash: 85,
+	scriptHash: 0x32,
+	wif: 213
+}
+
+
 var app = new Vue({
 	el: "#app",
 	data: {
@@ -54,6 +67,7 @@ var app = new Vue({
 		},
 		checkKey: function (priv_key) {
 			var network = (this.current == "bitcoin") ? bitcoinjs.networks.testnet : bitcoinjs.networks.ltestnet
+			var network = BITMARK
 
 			var keyPair = bitcoinjs.ECPair.fromWIF(priv_key, network);
 			var address = bitcoinjs.address.toBase58Check(
@@ -124,7 +138,7 @@ var app = new Vue({
 				let data = await res.json();
 
 				app.msg = data.txid ? {
-					status:"positive",
+					status: "positive",
 					title: "Transaction was successfully sent! Please wait for the wallet to update.",
 					reason: `TXID: ${data.txid}`
 				} : {
@@ -138,7 +152,7 @@ var app = new Vue({
 				let data = await res.text();
 
 				app.msg = {
-					status:"negative",
+					status: "negative",
 					title: "There was an error while sending your transaction.",
 					reason: data
 				}
@@ -152,6 +166,7 @@ var app = new Vue({
 			if (BLTWallet.checkValidAddress(recvAddress, app.current)) {
 				if (app[app.current].amount > 0 && sendAmount < app[app.current].amount) {
 					var nw = app.current == "bitcoin" ? bitcoinjs.networks.testnet : bitcoinjs.networks.ltestnet;
+					var nw = app.current = BITMARK;
 					var keyPair = bitcoinjs.ECPair.fromWIF(rot13(window.location.hash.match(/(b|l)\-([a-zA-Z0-9]+)(-([A-Z]{3}))?/)[2]), nw);
 					var tx = new bitcoinjs.TransactionBuilder(nw);
 					let res = await app.getUnspentTransactions(sendAmount, tx, keyPair);
@@ -179,8 +194,8 @@ var app = new Vue({
 			this.init(this.current == "bitcoin" ? "litecoin" : "bitcoin");
 		},
 		updateData: async () => {
-			await app.updatePrices();
-			await app.updateTransactions();
+			// await app.updatePrices();
+			// await app.updateTransactions();
 		},
 		updateFiat: function (currency) {
 			window.location.hash = window.location.hash.replace(/-[A-Z]{3}$/g, '-' + currency);
@@ -222,7 +237,7 @@ var app = new Vue({
 		color: function () {
 			return this[this.current].color;
 		},
-		faucets: function() {
+		faucets: function () {
 			return this[this.current].faucets;
 		},
 		fiat_amount: function () {
@@ -244,8 +259,8 @@ let BLTWallet = {
 		const fee = .001;
 
 		inputs.sort(function (a, b) { return parseFloat(a.value) - parseFloat(b.value) });
-		inputs.forEach(function(intx) {
-			if ((sendAmount + fee) > spendAmount){
+		inputs.forEach(function (intx) {
+			if ((sendAmount + fee) > spendAmount) {
 				spendAmount += intx.amount;
 				num_inputs += 1;
 				tx.addInput(intx.txid, intx.vout);
@@ -270,8 +285,10 @@ let BLTWallet = {
 
 		return tx.buildIncomplete().toHex();
 	},
-	createNewAddress(network){
+	createNewAddress(network) {
 		var nw = network == "bitcoin" ? bitcoinjs.networks.testnet : bitcoinjs.networks.ltestnet;
+		console.log('nw', nw)
+		var nw = network = BITMARK;
 		var keyPair = bitcoinjs.ECPair.makeRandom({ network: nw });
 		var address = bitcoinjs.address.toBase58Check(
 			bitcoinjs.crypto.hash160(keyPair.publicKey),
@@ -285,12 +302,12 @@ let BLTWallet = {
 			return bitcoinjs.address.fromBase58Check(address, network == "bitcoin" ?
 				bitcoinjs.networks.testnet : bitcoinjs.networks.ltestnet
 			);
-		} catch(err) {
+		} catch (err) {
 			try {
 				return bitcoinjs.address.toOutputScript(address, network == "bitcoin" ?
 					bitcoinjs.networks.testnet : bitcoinjs.networks.ltestnet
 				);
-			} catch(err) {
+			} catch (err) {
 				return false;
 			}
 		}
@@ -300,17 +317,18 @@ let BLTWallet = {
 // rot13 implementation
 // https://stackoverflow.com/questions/617647/where-is-my-one-line-implementation-of-rot13-in-javascript-going-wrong
 function rot13(str) {
-  return str.replace(/[a-zA-Z]/g, function(chr) {
-	var start = chr <= 'Z' ? 65 : 97;
-	return String.fromCharCode(start + (chr.charCodeAt(0) - start + 13) % 26);
-  });
+	return str
+	return str.replace(/[a-zA-Z]/g, function (chr) {
+		var start = chr <= 'Z' ? 65 : 97;
+		return String.fromCharCode(start + (chr.charCodeAt(0) - start + 13) % 26);
+	});
 }
 
 function showModal() {
 	$('.modal').modal('show');
 }
 
-$(document).ready(function() {
+$(document).ready(function () {
 	// check if valid wallet address
 	if (/(b|l)\-([a-zA-Z0-9]+)-([A-Z]{3})/.test(window.location.hash)) {
 		// set currency
@@ -322,12 +340,13 @@ $(document).ready(function() {
 			if (app.checkKey(rot13(window.location.hash.match(/(b|l)\-([a-zA-Z0-9]+)(-([A-Z]{3}))?/)[2]))) {
 				app.updateData();
 			}
-		} catch(err) {
+		} catch (err) {
+			console.log(err)
 			app.init('bitcoin');
 		}
 	} else {
 		app.init('bitcoin');
 	};
 	$('.ui.dropdown').dropdown();
-	setInterval(app.updateData, 30 * 1000);
+	// setInterval(app.updateData, 30 * 1000);
 });
